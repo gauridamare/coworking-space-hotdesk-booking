@@ -1,8 +1,12 @@
 
 package com.coworking.hotdesk.dao;
+
 import java.math.BigDecimal;
+import java.util.List;
+
 import com.coworking.hotdesk.entity.User;
 import com.coworking.hotdesk.rowmapper.UserRowMapper;
+
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
@@ -20,11 +24,13 @@ public class UserDao {
 
         String sql = "SELECT * FROM users WHERE user_id = ?";
 
-        return jdbcTemplate.queryForObject(
+        List<User> users = jdbcTemplate.query(
                 sql,
                 new UserRowMapper(),
                 userId
         );
+
+        return users.isEmpty() ? null : users.get(0);
     }
 
     // Register a new user
@@ -43,13 +49,12 @@ public class UserDao {
     }
 
     // Update user wallet balance
-   
-public int updateWalletBalance(Long userId, BigDecimal balance) {
+    public int updateWalletBalance(Long userId, BigDecimal balance) {
 
-    String sql = "UPDATE users "
-            + "SET wallet_balance = ? WHERE user_id = ?";
+        String sql = "UPDATE users "
+                + "SET wallet_balance = ? "
+                + "WHERE user_id = ?";
 
-    return jdbcTemplate.update(sql, balance, userId);
-}
-
+        return jdbcTemplate.update(sql, balance, userId);
+    }
 }

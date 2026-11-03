@@ -26,10 +26,13 @@ public class BookingDao {
     }
 
     public Booking getBookingById(Long bookingId) {
-        String sql = "SELECT * FROM bookings WHERE booking_id = ?";
-        return jdbcTemplate.queryForObject(
-                sql, new BookingRowMapper(), bookingId);
-    }
+    String sql = "SELECT * FROM bookings WHERE booking_id = ?";
+
+    List<Booking> bookings = jdbcTemplate.query(
+            sql, new BookingRowMapper(), bookingId);
+
+    return bookings.isEmpty() ? null : bookings.get(0);
+}
 
     public int addBooking(Booking booking) {
         String sql = "INSERT INTO bookings "

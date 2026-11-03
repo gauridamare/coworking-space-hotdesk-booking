@@ -1,14 +1,14 @@
 
 package com.coworking.hotdesk.dao;
 
+import java.time.LocalDate;
+import java.util.List;
+
 import com.coworking.hotdesk.entity.Workspace;
 import com.coworking.hotdesk.rowmapper.WorkspaceRowMapper;
 
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
-
-import java.time.LocalDate;
-import java.util.List;
 
 @Repository
 public class WorkspaceDao {
@@ -32,11 +32,13 @@ public class WorkspaceDao {
 
         String sql = "SELECT * FROM workspaces WHERE space_id = ?";
 
-        return jdbcTemplate.queryForObject(
+        List<Workspace> workspaces = jdbcTemplate.query(
                 sql,
                 new WorkspaceRowMapper(),
                 spaceId
         );
+
+        return workspaces.isEmpty() ? null : workspaces.get(0);
     }
 
     // Register a new workspace

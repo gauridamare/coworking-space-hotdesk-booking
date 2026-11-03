@@ -50,7 +50,8 @@ public class BookingService {
     public void createBooking(Booking booking) {
 
         if (booking == null) {
-            throw new IllegalArgumentException("Booking details are required!");
+            throw new IllegalArgumentException(
+                    "Booking details are required!");
         }
 
         if (booking.getUserId() == null) {
@@ -78,16 +79,27 @@ public class BookingService {
                     "Slot hour must be between 0 and 23!");
         }
 
+        // Check whether user exists
         User user = userDao.getUserById(booking.getUserId());
 
+        if (user == null) {
+            throw new IllegalArgumentException("User not found!");
+        }
+
+        // Check whether workspace exists
         Workspace workspace =
                 workspaceDao.getWorkspaceById(booking.getSpaceId());
+
+        if (workspace == null) {
+            throw new IllegalArgumentException("Workspace not found!");
+        }
 
         if (!workspace.isActive()) {
             throw new IllegalArgumentException(
                     "Workspace is not active!");
         }
 
+        // Check workspace availability
         boolean available = bookingDao.isSlotAvailable(
                 booking.getSpaceId(),
                 booking.getBookingDate(),
@@ -99,13 +111,21 @@ public class BookingService {
                     "This workspace slot is already booked!");
         }
 
+        // Calculate booking cost
         BigDecimal totalCost = workspace.getHourlyRate();
 
+        if (totalCost == null || user.getWalletBalance() == null) {
+            throw new IllegalStateException(
+                    "Workspace rate or user wallet balance is missing!");
+        }
+
+        // Check wallet balance
         if (user.getWalletBalance().compareTo(totalCost) < 0) {
             throw new IllegalArgumentException(
                     "Insufficient wallet balance!");
         }
 
+        // Deduct wallet balance
         BigDecimal newBalance =
                 user.getWalletBalance().subtract(totalCost);
 
@@ -114,6 +134,7 @@ public class BookingService {
                 newBalance
         );
 
+        // Save booking details
         booking.setTotalCost(totalCost);
         booking.setBookingStatus("CONFIRMED");
 
@@ -130,11 +151,28 @@ public class BookingService {
     @Transactional
     public void cancelBooking(Long bookingId) {
 
+        if (bookingId == null) {
+            throw new IllegalArgumentException(
+                    "Booking ID is required!");
+        }
+
         Booking booking = bookingDao.getBookingById(bookingId);
+
+        if (booking == null) {
+            throw new IllegalArgumentException(
+                    "Booking not found!");
+        }
 
         if (!"CONFIRMED".equals(booking.getBookingStatus())) {
             throw new IllegalArgumentException(
                     "Booking is already cancelled!");
+        }
+
+        if (booking.getBookingDate() == null ||
+                !booking.getBookingDate().isAfter(LocalDate.now())) {
+
+            throw new IllegalArgumentException(
+                    "Only future bookings can be cancelled!");
         }
 
         int updatedRows =
@@ -145,8 +183,22 @@ public class BookingService {
                     "Booking is already cancelled!");
         }
 
+        // Find user before refunding
         User user = userDao.getUserById(booking.getUserId());
 
+        if (user == null) {
+            throw new IllegalStateException(
+                    "User associated with this booking was not found!");
+        }
+
+        if (user.getWalletBalance() == null ||
+                booking.getTotalCost() == null) {
+
+            throw new IllegalStateException(
+                    "Wallet balance or booking amount is missing!");
+        }
+
+        // Refund booking amount
         BigDecimal refundAmount =
                 user.getWalletBalance().add(booking.getTotalCost());
 
